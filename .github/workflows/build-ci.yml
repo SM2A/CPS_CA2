@@ -24,6 +24,6 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         run: ./gradlew assemble
-     - uses: actions/upload-artifact@v3
-       with:
+      - uses: actions/upload-artifact@v3
+        with:
          path: app/build/outputs/apk/debug/*.apk
