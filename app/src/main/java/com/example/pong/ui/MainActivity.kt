@@ -1,6 +1,5 @@
 package com.example.pong.ui
 
-import android.app.Activity
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -19,7 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import com.example.pong.model.Orientation
 import com.example.pong.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -28,6 +27,10 @@ import kotlinx.coroutines.delay
 class MainActivity : ComponentActivity(), SensorEventListener {
 
     private val viewModel: MainViewModel by viewModels()
+
+    companion object {
+        private val TAG = MainActivity::class.java.name
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,9 +48,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             LaunchedEffect(key1 = y) {
                 if (y <= 49.dp) step = 1
                 else if (y >= 700.dp) step = -1
-                delay(10)
+                delay(1000)
                 y += step.dp
-//                updateOrientationAngles()
+                updateOrientationAngles()
             }
 
             MovingBall(
@@ -108,7 +111,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        Log.e("TAG", "onAccuracyChanged: ")
+        Log.e(TAG, "onAccuracyChanged: ")
     }
 
     fun updateOrientationAngles() {
@@ -120,10 +123,20 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             viewModel.magnetometerReading
         )
 
-        SensorManager.getOrientation(viewModel.rotationMatrix, viewModel.orientationAngles)
+        SensorManager.getOrientation(viewModel.rotationMatrix, viewModel.orientationAnglesRadian)
+
+        viewModel.orientationAnglesDegree = Orientation(
+            x = Math.toDegrees(viewModel.orientationAnglesRadian[1].toDouble()),
+            y = Math.toDegrees(viewModel.orientationAnglesRadian[2].toDouble()),
+            z = Math.toDegrees(viewModel.orientationAnglesRadian[0].toDouble())
+        )
+
         Log.d(
-            "TAG",
-            "updateOrientationAngles: ${viewModel.orientationAngles[0]}   ${viewModel.orientationAngles[1]}   ${viewModel.orientationAngles[2]}"
+            TAG,
+            "Orientation: " +
+                    "X = ${viewModel.orientationAnglesDegree.x}   " +
+                    "Y = ${viewModel.orientationAnglesDegree.y}   " +
+                    "Z = ${viewModel.orientationAnglesDegree.z}"
         )
     }
 
