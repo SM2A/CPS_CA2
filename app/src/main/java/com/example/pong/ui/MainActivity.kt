@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pong.model.Orientation
@@ -48,12 +50,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             LaunchedEffect(key1 = y) {
                 if (y <= 49.dp) step = 1
                 else if (y >= 700.dp) step = -1
-                delay(1000)
+                delay(10)
                 y += step.dp
                 updateOrientationAngles()
             }
 
-            MovingBall(
+            Ball(
                 x = 200.dp,
                 y = y,
                 radius = 40.0f,
@@ -61,6 +63,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth()
+            )
+
+            Break(
+                x = 100.dp,
+                y = 500.dp,
+                width = 200.dp,
+                height = 20.dp,
+                color = Color.Blue,
+                rotationDegree = viewModel.orientationAnglesDegree.z.toFloat()
             )
         }
     }
@@ -143,7 +154,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 }
 
 @Composable
-fun MovingBall(
+fun Ball(
     x: Dp,
     y: Dp,
     radius: Float,
@@ -156,5 +167,29 @@ fun MovingBall(
             radius = radius.dp.toPx(),
             center = Offset(x = x.toPx(), y = y.toPx())
         )
+    }
+}
+
+@Composable
+fun Break(
+    x: Dp,
+    y: Dp,
+    width: Dp,
+    height: Dp,
+    color: Color,
+    rotationDegree: Float,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        rotate(
+            degrees = rotationDegree,
+            pivot = Offset(x = x.toPx() + (width.toPx() / 2), y = y.toPx() + (height.toPx() / 2))
+        ) {
+            drawRect(
+                color = color,
+                topLeft = Offset(x = x.toPx(), y = y.toPx()),
+                size = Size(width.toPx(), height.toPx())
+            )
+        }
     }
 }

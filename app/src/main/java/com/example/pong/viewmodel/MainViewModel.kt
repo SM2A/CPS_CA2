@@ -15,6 +15,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     val rotationMatrix = FloatArray(9)
     val orientationAnglesRadian = FloatArray(3)
-    lateinit var orientationAnglesDegree: Orientation
+    var orientationAnglesDegree: Orientation = Orientation()
 
 }
