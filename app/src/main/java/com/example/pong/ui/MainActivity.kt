@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.pong.PongApplication
 import com.example.pong.model.Orientation
 import com.example.pong.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,6 +37,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        /*Log.i(TAG, "onCreate: ${PongApplication.config.displayWidth}")
+        Log.i(TAG, "onCreate: ${PongApplication.config.displayHeight}")*/
 
         viewModel.sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -58,8 +62,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Ball(
                 x = 200.dp,
                 y = y,
-                radius = 40.0f,
-                color = Color.Red,
+                radius = PongApplication.config.ballRadius,
+                color = PongApplication.config.ballColor,
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth()
@@ -68,9 +72,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Break(
                 x = 100.dp,
                 y = 500.dp,
-                width = 200.dp,
-                height = 20.dp,
-                color = Color.Blue,
+                width = PongApplication.config.breakWidth,
+                height = PongApplication.config.breakHeight,
+                color = PongApplication.config.breakColor,
                 rotationDegree = viewModel.orientationAnglesDegree.z.toFloat()
             )
         }
@@ -142,13 +146,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             z = Math.toDegrees(viewModel.orientationAnglesRadian[0].toDouble())
         )
 
-        Log.d(
+        /*Log.d(
             TAG,
             "Orientation: " +
                     "X = ${viewModel.orientationAnglesDegree.x}   " +
                     "Y = ${viewModel.orientationAnglesDegree.y}   " +
                     "Z = ${viewModel.orientationAnglesDegree.z}"
-        )
+        )*/
     }
 
 }
@@ -157,14 +161,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 fun Ball(
     x: Dp,
     y: Dp,
-    radius: Float,
+    radius: Dp,
     color: Color,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
         drawCircle(
             color = color,
-            radius = radius.dp.toPx(),
+            radius = radius.toPx(),
             center = Offset(x = x.toPx(), y = y.toPx())
         )
     }
