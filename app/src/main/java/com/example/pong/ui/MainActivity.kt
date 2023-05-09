@@ -6,6 +6,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -37,6 +38,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         /*Log.i(TAG, "onCreate: ${PongApplication.config.displayWidth}")
         Log.i(TAG, "onCreate: ${PongApplication.config.displayHeight}")*/
@@ -56,7 +58,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 else if (y >= 700.dp) step = -1
                 delay(10)
                 y += step.dp
-                updateOrientationAngles()
+//                updateOrientationAngles()
             }
 
             Ball(
@@ -83,44 +85,70 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
 
-        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
-            viewModel.sensorManager.registerListener(
-                this,
-                accelerometer,
-                SensorManager.SENSOR_DELAY_NORMAL,
-                SensorManager.SENSOR_DELAY_UI
-            )
-        }
+        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            ?.also { accelerometer ->
+                viewModel.sensorManager.registerListener(
+                    this,
+                    accelerometer,
+                    SensorManager.SENSOR_DELAY_GAME,
+                    SensorManager.SENSOR_DELAY_FASTEST
+                )
+            }
         viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
             ?.also { magneticField ->
                 viewModel.sensorManager.registerListener(
                     this,
                     magneticField,
-                    SensorManager.SENSOR_DELAY_NORMAL,
-                    SensorManager.SENSOR_DELAY_UI
+                    SensorManager.SENSOR_DELAY_GAME,
+                    SensorManager.SENSOR_DELAY_FASTEST
+                )
+            }
+
+        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+            ?.also { rotationVector ->
+                viewModel.sensorManager.registerListener(
+                    this,
+                    rotationVector,
+                    SensorManager.SENSOR_DELAY_GAME,
+                    SensorManager.SENSOR_DELAY_FASTEST
                 )
             }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
+            when (it.sensor.type) {
+                /*Sensor.TYPE_ACCELEROMETER -> {
+                    System.arraycopy(
+                        it.values,
+                        0,
+                        viewModel.accelerometerReading,
+                        0,
+                        viewModel.accelerometerReading.size
+                    )
+                }*/
+                /*Sensor.TYPE_MAGNETIC_FIELD -> {
+                    System.arraycopy(
+                        it.values,
+                        0,
+                        viewModel.magnetometerReading,
+                        0,
+                        viewModel.magnetometerReading.size
+                    )
+                }*/
+                Sensor.TYPE_ROTATION_VECTOR -> {
+                    SensorManager.getRotationMatrixFromVector(
+                        viewModel.rotationMatrix,
+                        event.values
+                    )
+                    val x = viewModel.rotationMatrix[0]
+                    val y = viewModel.rotationMatrix[3]
+                    val azimuth = Math.toDegrees(-kotlin.math.atan2(y.toDouble(), x.toDouble()))
+                    viewModel.orientationAnglesDegree = Orientation(z = azimuth)
+                }
+                else -> {
 
-            if (it.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                System.arraycopy(
-                    it.values,
-                    0,
-                    viewModel.accelerometerReading,
-                    0,
-                    viewModel.accelerometerReading.size
-                )
-            } else if (it.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                System.arraycopy(
-                    it.values,
-                    0,
-                    viewModel.magnetometerReading,
-                    0,
-                    viewModel.magnetometerReading.size
-                )
+                }
             }
         }
     }
@@ -129,7 +157,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         Log.e(TAG, "onAccuracyChanged: ")
     }
 
-    fun updateOrientationAngles() {
+    /*private fun updateOrientationAngles() {
 
         SensorManager.getRotationMatrix(
             viewModel.rotationMatrix,
@@ -146,14 +174,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             z = Math.toDegrees(viewModel.orientationAnglesRadian[0].toDouble())
         )
 
-        /*Log.d(
+        Log.d(
             TAG,
             "Orientation: " +
                     "X = ${viewModel.orientationAnglesDegree.x}   " +
                     "Y = ${viewModel.orientationAnglesDegree.y}   " +
                     "Z = ${viewModel.orientationAnglesDegree.z}"
-        )*/
-    }
+        )
+    }*/
 
 }
 
