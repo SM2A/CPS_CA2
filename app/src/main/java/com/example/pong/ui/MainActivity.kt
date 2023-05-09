@@ -26,6 +26,7 @@ import com.example.pong.model.Orientation
 import com.example.pong.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
@@ -36,12 +37,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         private val TAG = MainActivity::class.java.name
     }
 
+    private var breakX = 100.dp
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        /*Log.i(TAG, "onCreate: ${PongApplication.config.displayWidth}")
-        Log.i(TAG, "onCreate: ${PongApplication.config.displayHeight}")*/
 
         viewModel.sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
@@ -57,8 +57,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 if (y <= 49.dp) step = 1
                 else if (y >= 700.dp) step = -1
                 delay(10)
+                updateOrientationAngles()
                 y += step.dp
-//                updateOrientationAngles()
             }
 
             Ball(
@@ -72,82 +72,51 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             )
 
             Break(
-                x = 100.dp,
+                x = breakX,
                 y = 500.dp,
                 width = PongApplication.config.breakWidth,
                 height = PongApplication.config.breakHeight,
                 color = PongApplication.config.breakColor,
-                rotationDegree = viewModel.orientationAnglesDegree.z.toFloat()
+//                rotationDegree = viewModel.orientationAnglesDegree.z.toFloat(),
+                rotationDegree = 0.0f,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth()
             )
         }
     }
 
     override fun onResume() {
         super.onResume()
-
-        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-            ?.also { accelerometer ->
-                viewModel.sensorManager.registerListener(
-                    this,
-                    accelerometer,
-                    SensorManager.SENSOR_DELAY_GAME,
-                    SensorManager.SENSOR_DELAY_FASTEST
-                )
-            }
-        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-            ?.also { magneticField ->
-                viewModel.sensorManager.registerListener(
-                    this,
-                    magneticField,
-                    SensorManager.SENSOR_DELAY_GAME,
-                    SensorManager.SENSOR_DELAY_FASTEST
-                )
-            }
-
-        viewModel.sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-            ?.also { rotationVector ->
-                viewModel.sensorManager.registerListener(
-                    this,
-                    rotationVector,
-                    SensorManager.SENSOR_DELAY_GAME,
-                    SensorManager.SENSOR_DELAY_FASTEST
-                )
-            }
+        registerSensor(Sensor.TYPE_ACCELEROMETER)
+        registerSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        registerSensor(Sensor.TYPE_ROTATION_VECTOR)
+        registerSensor(Sensor.TYPE_GRAVITY)
     }
+
+    override fun onPause() {
+        super.onPause()
+        viewModel.sensorManager.unregisterListener(this)
+    }
+
+    private var timeNano: Long = System.nanoTime()
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                /*Sensor.TYPE_ACCELEROMETER -> {
-                    System.arraycopy(
-                        it.values,
-                        0,
-                        viewModel.accelerometerReading,
-                        0,
-                        viewModel.accelerometerReading.size
-                    )
-                }*/
-                /*Sensor.TYPE_MAGNETIC_FIELD -> {
-                    System.arraycopy(
-                        it.values,
-                        0,
-                        viewModel.magnetometerReading,
-                        0,
-                        viewModel.magnetometerReading.size
-                    )
-                }*/
-                Sensor.TYPE_ROTATION_VECTOR -> {
-                    SensorManager.getRotationMatrixFromVector(
-                        viewModel.rotationMatrix,
-                        event.values
-                    )
-                    val x = viewModel.rotationMatrix[0]
-                    val y = viewModel.rotationMatrix[3]
-                    val azimuth = Math.toDegrees(-kotlin.math.atan2(y.toDouble(), x.toDouble()))
-                    viewModel.orientationAnglesDegree = Orientation(z = azimuth)
+                Sensor.TYPE_ACCELEROMETER -> {
+                    val deltaT = System.nanoTime() - timeNano
+                    viewModel.copyData(it.values, viewModel.accelerometerReading)
+                    val x = ((viewModel.accelerometerReading[0]- viewModel.gravityReading[0]) * 0.01 * 0.01 * 0.5)*10000*2
+                    if (x>0) moveRight+=x
+                    Log.e("updateOrientationAngles1", "${moveRight}")
+                    timeNano = System.nanoTime()
                 }
+                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
+                Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
+                Sensor.TYPE_ROTATION_VECTOR -> viewModel.setZAxisRotation(it.values)
                 else -> {
-
+                    Log.i(TAG, "onSensorChanged: Unknown sensor ${it.sensor.type}")
                 }
             }
         }
@@ -157,9 +126,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         Log.e(TAG, "onAccuracyChanged: ")
     }
 
-    /*private fun updateOrientationAngles() {
+    private fun registerSensor(sensorType: Int) {
+        viewModel.sensorManager.getDefaultSensor(sensorType)
+            ?.also { sensor ->
+                viewModel.sensorManager.registerListener(
+                    this,
+                    sensor,
+                    SensorManager.SENSOR_DELAY_GAME,
+                    SensorManager.SENSOR_DELAY_FASTEST
+                )
+            }
+    }
 
-        SensorManager.getRotationMatrix(
+    private var moveRight: Double = 0.0
+
+    private fun updateOrientationAngles() {
+
+        /*SensorManager.getRotationMatrix(
             viewModel.rotationMatrix,
             null,
             viewModel.accelerometerReading,
@@ -180,8 +163,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     "X = ${viewModel.orientationAnglesDegree.x}   " +
                     "Y = ${viewModel.orientationAnglesDegree.y}   " +
                     "Z = ${viewModel.orientationAnglesDegree.z}"
+        )*/
+
+        if (abs(viewModel.accelerometerReading[0] - viewModel.gravityReading[0]) <= 0.1f) return
+
+        val x = ((viewModel.accelerometerReading[0]) * 0.01 * 0.01 * 0.5)*100
+//        breakX += (x * 100000).dp
+//        if (x>0) moveRight+=x
+        Log.w(
+            "updateOrientationAngles",
+            "${viewModel.accelerometerReading[0]}     ${viewModel.accelerometerReading[0] - viewModel.gravityReading[0]}   $x           ${moveRight}"
         )
-    }*/
+        Log.e("updateOrientationAngles", "$breakX")
+    }
 
 }
 
