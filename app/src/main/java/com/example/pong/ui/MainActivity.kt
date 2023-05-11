@@ -27,6 +27,7 @@ import com.example.pong.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import kotlin.math.pow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
@@ -88,7 +89,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
-        registerSensor(Sensor.TYPE_ACCELEROMETER)
+        registerSensor(Sensor.TYPE_LINEAR_ACCELERATION)
         registerSensor(Sensor.TYPE_MAGNETIC_FIELD)
         registerSensor(Sensor.TYPE_ROTATION_VECTOR)
         registerSensor(Sensor.TYPE_GRAVITY)
@@ -100,19 +101,36 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     private var timeNano: Long = System.nanoTime()
+    private var vlocity = 0.0
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                Sensor.TYPE_ACCELEROMETER -> {
+                Sensor.TYPE_LINEAR_ACCELERATION -> {
                     val deltaT = System.nanoTime() - timeNano
-                    viewModel.copyData(it.values, viewModel.accelerometerReading)
-                    val x = ((viewModel.accelerometerReading[0]- viewModel.gravityReading[0]) * 0.01 * 0.01 * 0.5)*10000*2
-                    if (x>0) moveRight+=x
-                    Log.e("updateOrientationAngles1", "${moveRight}")
                     timeNano = System.nanoTime()
+                    if (abs(it.values[0]) < 0.1) return
+                    viewModel.copyData(it.values, viewModel.accelerometerReading)
+                    val x =
+                        0.5 * ((it.values[0]) * deltaT.toDouble()
+                            .pow(2.0) / 10.toDouble().pow(9.0 * 2))
+                    val v =
+                        ((it.values[0]) * deltaT.toDouble() / 10.toDouble()
+                            .pow(9.0)) + vlocity
+                    if ((v > 0.1) && (x > 0)) moveRight += ((x + (v / 10.toDouble().pow(9.0))) * 100)
+                    Log.e(
+                        "updateOrientationAngles2",
+                        "${(it.values[0])}   ${
+                            deltaT.toDouble().pow(2.0)
+                        }      ${10.toDouble().pow(9.0)}"
+                    )
+                    Log.e("updateOrientationAngles1", "${it.values[0]}   ##  $v  ** $moveRight")
+                    vlocity = v
                 }
-                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
+                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(
+                    it.values,
+                    viewModel.magnetometerReading
+                )
                 Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
                 Sensor.TYPE_ROTATION_VECTOR -> viewModel.setZAxisRotation(it.values)
                 else -> {
