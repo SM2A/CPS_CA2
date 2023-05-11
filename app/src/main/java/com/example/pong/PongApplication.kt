@@ -10,7 +10,7 @@ import dagger.hilt.android.HiltAndroidApp
 class PongApplication : Application() {
 
     companion object {
-        val config = GameConfig(
+        var config = GameConfig(
             displayWidth = Resources.getSystem().displayMetrics.widthPixels.dp,
             displayHeight = Resources.getSystem().displayMetrics.heightPixels.dp
         )
