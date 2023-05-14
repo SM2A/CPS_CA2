@@ -11,6 +11,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
@@ -20,11 +22,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.pong.PongApplication
 import com.example.pong.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import com.example.pong.R
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), SensorEventListener {
@@ -43,9 +48,34 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         setContent {
 
+            val displayWidth = LocalConfiguration.current.screenWidthDp.dp
+            val displayHeight = LocalConfiguration.current.screenHeightDp.dp
+
             viewModel.setupGameConfig(
-                width = LocalConfiguration.current.screenWidthDp.dp,
-                height = LocalConfiguration.current.screenHeightDp.dp
+                width = displayWidth,
+                height = displayHeight
+            )
+
+            var redraw by remember {
+                mutableStateOf(false)
+            }
+
+            LaunchedEffect(key1 = redraw) {
+                delay(10)
+                redraw = !redraw
+            }
+
+            PlayButton(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(),
+                isVisible = viewModel.showPlayButton,
+                onClickAction = {
+                    viewModel.resetGame(
+                        width = displayWidth,
+                        height = displayHeight
+                    )
+                }
             )
 
             Ball(
@@ -118,6 +148,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
     }
 
+}
+
+@Composable
+fun PlayButton(
+    modifier: Modifier = Modifier,
+    isVisible: Boolean = true,
+    onClickAction: () -> Unit = { }
+) {
+    if (isVisible) {
+        Image(
+            painter = painterResource(id = R.drawable.baseline_play_arrow_24),
+            contentDescription = "Play button",
+            modifier = modifier.clickable {
+                onClickAction.invoke()
+            }
+        )
+    }
 }
 
 @Composable

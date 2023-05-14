@@ -31,6 +31,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
     // Rotation data
     private val rotationMatrix = FloatArray(9)
     var orientationAnglesDegree: Orientation = Orientation()
+    private var zAxisOffset = 0.0
 
     // Elements position
     var ballPosition = PongApplication.config.ballInitPos
@@ -45,6 +46,13 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     private var moveRightSum = 0.0
     private var moveLeftSum = 0.0
+
+    // Ui elements state
+    var showPlayButton = true
+
+    companion object {
+        private val TAG = MainViewModel::class.java.name
+    }
 
     init {
         lastUpdate = System.currentTimeMillis()
@@ -69,6 +77,12 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     }
 
+    fun resetGame(width: Dp, height: Dp) {
+        setupGameConfig(width, height)
+        recordOrientationOffset()
+        showPlayButton = false
+    }
+
     fun copyData(values: FloatArray, destination: FloatArray) =
         System.arraycopy(values, 0, destination, 0, destination.size)
 
@@ -76,8 +90,18 @@ class MainViewModel @Inject constructor() : ViewModel() {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector)
         val x = rotationMatrix[0]
         val y = rotationMatrix[3]
-        val azimuth = Math.toDegrees(-atan2(y.toDouble(), x.toDouble()))
+        var azimuth = Math.toDegrees(-atan2(y.toDouble(), x.toDouble()))
+
+        azimuth -= zAxisOffset
+
+        if (azimuth >=90) azimuth = 90.0
+        else if (azimuth <= -90) azimuth = -90.0
+
         orientationAnglesDegree = Orientation(z = azimuth)
+    }
+
+    private fun recordOrientationOffset() {
+        zAxisOffset = orientationAnglesDegree.z
     }
 
     fun calculateMovement() {
