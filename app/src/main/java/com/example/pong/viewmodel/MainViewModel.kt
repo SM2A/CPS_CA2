@@ -1,7 +1,6 @@
 package com.example.pong.viewmodel
 
 import android.hardware.SensorManager
-import android.util.Log
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
@@ -14,9 +13,9 @@ import com.example.pong.model.Orientation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.LinkedList
 import javax.inject.Inject
-import kotlin.math.abs
-import kotlin.math.atan2
+import kotlin.math.*
 
 @HiltViewModel
 class MainViewModel @Inject constructor() : ViewModel() {
@@ -34,7 +33,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private var zAxisOffset = 0.0
 
     // Elements position
-    var ballPosition = PongApplication.config.ballInitPos
+    private var ballPosition = LinkedList<Coordinate>()
     var brickPosition = PongApplication.config.brickInitPos
 
     // Brick position
@@ -52,10 +51,12 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     companion object {
         private val TAG = MainViewModel::class.java.name
+        const val REDRAW_TIMER = 10L
     }
 
     init {
         lastUpdate = System.currentTimeMillis()
+        ballPosition.add(PongApplication.config.ballInitPos)
         changeBrickPosition()
     }
 
@@ -72,9 +73,14 @@ class MainViewModel @Inject constructor() : ViewModel() {
             displayWidth = width,
             displayHeight = height
         )
-        ballPosition = PongApplication.config.ballInitPos
+        ballPosition.clear()
+        ballPosition.add(PongApplication.config.ballInitPos)
+        ballPosition.add(
+            PongApplication.config.ballInitPos.copy(
+                y = PongApplication.config.ballInitPos.y.plus(1.dp)
+            )
+        )
         brickPosition = PongApplication.config.brickInitPos
-
     }
 
     fun resetGame(width: Dp, height: Dp) {
@@ -85,6 +91,43 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     fun copyData(values: FloatArray, destination: FloatArray) =
         System.arraycopy(values, 0, destination, 0, destination.size)
+
+    fun getBallPosition(): Coordinate {
+        nextBallPosition()
+        ballPosition.pop()
+        val position = ballPosition.peek()
+        return position ?: PongApplication.config.ballInitPos
+    }
+
+    private fun nextBallPosition() {
+        val p1 = ballPosition.peek()
+        val p2 = ballPosition[1]
+        val diff = p1?.let { p2.minus(it) }
+        val distance = sqrt(diff?.x?.value!!.toDouble().pow(2.0) + diff.y.value.toDouble().pow(2.0))
+        val speed = distance / REDRAW_TIMER
+
+        val angle = ballPosition.peek()?.let { ballAngle(it) }
+
+        val newCoordinate = Coordinate(
+            x = p2.x.plus((cos(angle!!) * (speed * REDRAW_TIMER)).dp),
+            y = p2.y.plus((sin(angle) * (speed * REDRAW_TIMER)).dp)
+        )
+
+        ballPosition.addLast(newCoordinate)
+    }
+
+    private fun ballAngle(next: Coordinate): Double {
+        val prev = ballPosition[1]
+
+        //TODO if ball hit surface
+
+        val diff = next.minus(prev)
+
+        if ((diff.x == 0.dp) && (diff.y > 0.dp)) return -PI / 2
+        if ((diff.x == 0.dp) && (diff.y < 0.dp)) return PI / 2
+
+        return atan(diff.y.div(diff.x).toDouble())
+    }
 
     fun setZAxisRotation(rotationVector: FloatArray) {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector)

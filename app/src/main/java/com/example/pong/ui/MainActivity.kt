@@ -46,6 +46,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         viewModel.sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
+        var ballPosition = PongApplication.config.ballInitPos
+
         setContent {
 
             val displayWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -61,8 +63,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
 
             LaunchedEffect(key1 = redraw) {
-                delay(10)
+                delay(MainViewModel.REDRAW_TIMER)
                 redraw = !redraw
+                ballPosition = viewModel.getBallPosition()
             }
 
             PlayButton(
@@ -79,8 +82,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             )
 
             Ball(
-                x = viewModel.ballPosition.x,
-                y = viewModel.ballPosition.y,
+                x = ballPosition.x,
+                y = ballPosition.y,
                 radius = PongApplication.config.ballRadius,
                 color = PongApplication.config.ballColor,
                 modifier = Modifier
