@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private val viewModel: MainViewModel by viewModels()
 
     companion object {
-        private val TAG = MainActivity::class.java.name
+        private const val TAG = "MainActivity"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

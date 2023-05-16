@@ -50,7 +50,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
     var showPlayButton = true
 
     companion object {
-        private val TAG = MainViewModel::class.java.name
+        private const val TAG = "MainViewModel"
         const val REDRAW_TIMER = 10L
     }
 
@@ -63,7 +63,8 @@ class MainViewModel @Inject constructor() : ViewModel() {
     fun setupGameConfig(width: Dp, height: Dp) {
 
         if ((width == PongApplication.config.displayWidth)
-            && ((height == PongApplication.config.displayHeight))) return
+            && ((height == PongApplication.config.displayHeight))
+        ) return
 
         PongApplication.config = GameConfig(
             ballInitPos = Coordinate(x = width.div(2), y = height.div(4)),
@@ -106,27 +107,51 @@ class MainViewModel @Inject constructor() : ViewModel() {
         val distance = sqrt(diff?.x?.value!!.toDouble().pow(2.0) + diff.y.value.toDouble().pow(2.0))
         val speed = distance / REDRAW_TIMER
 
-        val angle = ballPosition.peek()?.let { ballAngle(it) }
+        val angle = ballAngle(p2)
 
-        val newCoordinate = Coordinate(
-            x = p2.x.plus((cos(angle!!) * (speed * REDRAW_TIMER)).dp),
-            y = p2.y.plus((sin(angle) * (speed * REDRAW_TIMER)).dp)
-        )
+        val newCoordinate = getNextCoordinate(p2, angle, speed)
 
         ballPosition.addLast(newCoordinate)
     }
 
     private fun ballAngle(next: Coordinate): Double {
-        val prev = ballPosition[1]
-
-        //TODO if ball hit surface
+        val prev = ballPosition.peek()
 
         val diff = next.minus(prev)
 
-        if ((diff.x == 0.dp) && (diff.y > 0.dp)) return -PI / 2
-        if ((diff.x == 0.dp) && (diff.y < 0.dp)) return PI / 2
+        var angle = 0.0
+        if ((diff.x == 0.dp) && (diff.y > 0.dp)) angle = -PI / 2
+        if ((diff.x == 0.dp) && (diff.y < 0.dp)) angle = PI / 2
 
-        return atan(diff.y.div(diff.x).toDouble())
+        angle = atan(diff.y.div(diff.x).toDouble())
+
+        if ((angle == 0.0) && (diff.x < 0.dp)) angle = PI
+
+        if (doesHitWall(next)) {
+            var returnAngle = (PI - (2 * angle))
+            if ((angle == PI) || (angle == -PI) || (angle == PI / 2) || (angle == -PI / 2)) returnAngle =
+                PI
+            angle += returnAngle
+        }
+
+        return angle
+    }
+
+    private fun getNextCoordinate(current: Coordinate, angle: Double, speed: Double) = Coordinate(
+        x = current.x.plus((cos(angle) * (speed * REDRAW_TIMER)).dp),
+        y = current.y.plus((sin(angle) * (speed * REDRAW_TIMER)).dp)
+    )
+
+    private fun doesHitWall(next: Coordinate): Boolean {
+        val config = PongApplication.config
+        val radius = config.ballRadius
+
+        if (next.y <= radius) return true
+        if (next.x >= config.displayWidth.minus(radius)) return true
+        if (next.y >= config.displayHeight.minus(radius)) return true
+        if (next.x <= radius) return true
+
+        return false
     }
 
     fun setZAxisRotation(rotationVector: FloatArray) {
@@ -137,7 +162,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
         azimuth -= zAxisOffset
 
-        if (azimuth >=90) azimuth = 90.0
+        if (azimuth >= 90) azimuth = 90.0
         else if (azimuth <= -90) azimuth = -90.0
 
         orientationAnglesDegree = Orientation(z = azimuth)
