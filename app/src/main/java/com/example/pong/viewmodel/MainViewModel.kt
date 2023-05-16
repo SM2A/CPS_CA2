@@ -35,6 +35,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
     // Elements position
     private var ballPosition = LinkedList<Coordinate>()
     var brickPosition = PongApplication.config.brickInitPos
+    private var isBallGoingUpside = false
 
     // Brick position
     private var lastUpdate: Long = 0
@@ -78,6 +79,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
         ballPosition.add(PongApplication.config.ballInitPos)
         ballPosition.add(
             PongApplication.config.ballInitPos.copy(
+                x = PongApplication.config.ballInitPos.x.plus(1.dp),
                 y = PongApplication.config.ballInitPos.y.plus(1.dp)
             )
         )
@@ -107,7 +109,8 @@ class MainViewModel @Inject constructor() : ViewModel() {
         val distance = sqrt(diff?.x?.value!!.toDouble().pow(2.0) + diff.y.value.toDouble().pow(2.0))
         val speed = distance / REDRAW_TIMER
 
-        val angle = ballAngle(p2)
+        var angle = ballAngle(p2)
+        if (isBallGoingUpside && (diff.y < 0.dp)) angle += PI
 
         val newCoordinate = getNextCoordinate(p2, angle, speed)
 
@@ -125,12 +128,14 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
         angle = atan(diff.y.div(diff.x).toDouble())
 
-        if ((angle == 0.0) && (diff.x < 0.dp)) angle = PI
+        if (angle < 0.0) angle += PI
 
-        if (doesHitWall(next)) {
+        val doesHitWall = doesHitWall(next)
+
+        if (doesHitWall != 0) {
             var returnAngle = (PI - (2 * angle))
-            if ((angle == PI) || (angle == -PI) || (angle == PI / 2) || (angle == -PI / 2)) returnAngle =
-                PI
+            if ((angle == PI) || (angle == -PI) || (angle == PI / 2) || (angle == -PI / 2)) returnAngle = PI
+            if (doesHitWall == 3) returnAngle += PI
             angle += returnAngle
         }
 
@@ -142,16 +147,22 @@ class MainViewModel @Inject constructor() : ViewModel() {
         y = current.y.plus((sin(angle) * (speed * REDRAW_TIMER)).dp)
     )
 
-    private fun doesHitWall(next: Coordinate): Boolean {
+    private fun doesHitWall(next: Coordinate): Int {
         val config = PongApplication.config
         val radius = config.ballRadius
 
-        if (next.y <= radius) return true
-        if (next.x >= config.displayWidth.minus(radius)) return true
-        if (next.y >= config.displayHeight.minus(radius)) return true
-        if (next.x <= radius) return true
+        if (next.y <= radius) {
+            isBallGoingUpside = false
+            return 1
+        }
+        if (next.x >= config.displayWidth.minus(radius)) return 1
+        if (next.y >= config.displayHeight.minus(radius)) {
+            isBallGoingUpside = true
+            return 3
+        }
+        if (next.x <= radius) return 4
 
-        return false
+        return 0
     }
 
     fun setZAxisRotation(rotationVector: FloatArray) {
