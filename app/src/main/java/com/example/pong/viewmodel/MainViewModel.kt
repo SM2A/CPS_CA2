@@ -1,6 +1,7 @@
 package com.example.pong.viewmodel
 
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isUnspecified
@@ -131,6 +132,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
         if (angle < 0.0) angle += PI
 
         val doesHitWall = doesHitWall(next)
+        val doesHitBrick = doesHitBrick(next)
 
         if (doesHitWall != 0) {
             var returnAngle = (PI - (2 * angle))
@@ -164,6 +166,102 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
         return 0
     }
+
+    private fun doesHitBrick(next: Coordinate): Int {
+        val center = brickPosition
+        val angle = orientationAnglesDegree.z
+
+
+
+
+
+
+
+        val brickVertices = brickVertices(center, angle)
+
+//        Log.e(TAG, "doesHitBrick: $brickVertices")
+
+        // Check if the ball intersects any of the rectangle's edges
+        for (i in brickVertices.indices) {
+            val j = (i + 1) % brickVertices.size
+            if (lineIntersectsCircle(brickVertices[i], brickVertices[j], next)) {
+                return 1
+            }
+        }
+
+        // Check if the ball is inside the rectangle
+        /*if (pointInsideRectangle(ballCenter, rectVertices)) {
+            return 1
+        }*/
+
+        return 0
+
+
+
+
+//        return 0
+    }
+
+
+    private fun brickVertices(position: Coordinate, angle: Double): List<Coordinate> {
+        val halfWidth = PongApplication.config.brickWidth.div(2).value
+        val halfHeight = PongApplication.config.brickHeight.div(2).value
+
+        val radAngle = Math.toRadians(angle)
+
+        val cosAngle = cos(radAngle)
+        val sinAngle = sin(radAngle)
+
+        val dx1 = halfWidth * cosAngle - halfHeight * sinAngle
+        val dy1 = halfWidth * sinAngle + halfHeight * cosAngle
+
+        val dx2 = halfWidth * cosAngle + halfHeight * sinAngle
+        val dy2 = halfWidth * sinAngle - halfHeight * cosAngle
+
+        val p1 = Coordinate(position.x + dx1.dp, position.y + dy1.dp)
+        val p2 = Coordinate(position.x - dx2.dp, position.y + dy2.dp)
+        val p3 = Coordinate(position.x - dx1.dp, position.y - dy1.dp)
+        val p4 = Coordinate(position.x + dx2.dp, position.y - dy2.dp)
+
+        return listOf(p1, p2, p3, p4)
+    }
+
+    private fun lineIntersectsCircle(
+        lineStart: Coordinate,
+        lineEnd: Coordinate,
+        circleCenter: Coordinate
+    ): Boolean {
+        val radius = PongApplication.config.ballRadius
+        val dx = (lineEnd.x - lineStart.x).value
+        val dy = (lineEnd.y - lineStart.y).value
+        val a = dx.pow(2) + dy.pow(2)
+        val b = 2 * ((dx * (lineStart.x - circleCenter.x).value) + (dy * (lineStart.y - circleCenter.y).value))
+        val c =
+            circleCenter.x.times(circleCenter.x.value) +
+                    circleCenter.y.times(circleCenter.y.value) +
+                    lineStart.x.times(lineStart.x.value) +
+                    lineStart.y.times(lineStart.y.value) -
+                    (circleCenter.x.times(lineStart.x.value) +
+                            circleCenter.y.times(lineStart.y.value)).times(2) -
+                    radius.times(radius.value)
+        val discriminant = b.pow(2) - (4 * a * c.value)
+        if (discriminant < 0) {
+            return false
+        }
+        val t = (-b - sqrt(discriminant)) / (a.times(2))
+        if (t in 0.0..1.0) {
+            return true
+        }
+        return false
+    }
+
+
+
+
+
+
+
+
 
     fun setZAxisRotation(rotationVector: FloatArray) {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector)
