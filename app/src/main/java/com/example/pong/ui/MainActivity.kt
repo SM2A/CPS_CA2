@@ -47,6 +47,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         viewModel.sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
         var ballPosition = PongApplication.config.ballInitPos
+        var brickPosition = PongApplication.config.brickInitPos
+        var brickAngle = 0.0f
 
         setContent {
 
@@ -66,6 +68,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 delay(MainViewModel.REDRAW_TIMER)
                 redraw = !redraw
                 ballPosition = viewModel.getBallPosition()
+                brickPosition = viewModel.getBrickPosition()
+                brickAngle = viewModel.getBrickAngleDegree()
             }
 
             PlayButton(
@@ -92,12 +96,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             )
 
             Brick(
-                x = viewModel.brickPosition.x,
-                y = viewModel.brickPosition.y,
+                x = brickPosition.x,
+                y = brickPosition.y,
                 width = PongApplication.config.brickWidth,
                 height = PongApplication.config.brickHeight,
                 color = PongApplication.config.brickColor,
-                rotationDegree = viewModel.orientationAnglesDegree.z.toFloat(),
+                rotationDegree = brickAngle,
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth()
@@ -123,7 +127,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             when (it.sensor.type) {
                 Sensor.TYPE_LINEAR_ACCELERATION -> {
                     viewModel.copyData(it.values, viewModel.accelerometerReading)
-                    viewModel.calculateMovement()
+                    //viewModel.calculateMovement()
                 }
                 Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
                 Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
@@ -200,11 +204,11 @@ fun Brick(
     Canvas(modifier = modifier) {
         rotate(
             degrees = rotationDegree,
-            pivot = Offset(x = x.toPx() + (width.toPx() / 2), y = y.toPx() + (height.toPx() / 2))
+            pivot = Offset(x = x.toPx(), y = y.toPx())
         ) {
             drawRect(
                 color = color,
-                topLeft = Offset(x = x.toPx(), y = y.toPx()),
+                topLeft = Offset(x = x.toPx() - (width.toPx() / 2), y = y.toPx() - (height.toPx() / 2)),
                 size = Size(width.toPx(), height.toPx())
             )
         }

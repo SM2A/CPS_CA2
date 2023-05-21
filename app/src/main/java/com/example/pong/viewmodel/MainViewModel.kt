@@ -9,6 +9,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pong.GameConfig
 import com.example.pong.PongApplication
+import com.example.pong.model.Ball
+import com.example.pong.model.Board
+import com.example.pong.model.Brick
 import com.example.pong.model.Coordinate
 import com.example.pong.model.Orientation
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +25,9 @@ import kotlin.math.*
 class MainViewModel @Inject constructor() : ViewModel() {
 
     lateinit var sensorManager: SensorManager
+    private val ball: Ball = Ball(10, 200.0, 0.0, 15.0, 17.0)
+    private val brick: Brick = Brick(100, 50, 200.0, 700.0, 0.0f)
+    private val board: Board = Board(400, 750, ball, brick)
 
     // Sensor readings
     val accelerometerReading = FloatArray(3)
@@ -33,20 +39,8 @@ class MainViewModel @Inject constructor() : ViewModel() {
     var orientationAnglesDegree: Orientation = Orientation()
     private var zAxisOffset = 0.0
 
-    // Elements position
-    private var ballPosition = LinkedList<Coordinate>()
-    var brickPosition = PongApplication.config.brickInitPos
-    private var isBallGoingUpside = false
-
     // Brick position
     private var lastUpdate: Long = 0
-    private var lastX = 0f
-
-    private var moveRightCount = 0
-    private var moveLeftCount = 0
-
-    private var moveRightSum = 0.0
-    private var moveLeftSum = 0.0
 
     // Ui elements state
     var showPlayButton = true
@@ -58,7 +52,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     init {
         lastUpdate = System.currentTimeMillis()
-        ballPosition.add(PongApplication.config.ballInitPos)
         changeBrickPosition()
     }
 
@@ -76,15 +69,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
             displayWidth = width,
             displayHeight = height
         )
-        ballPosition.clear()
-        ballPosition.add(PongApplication.config.ballInitPos)
-        ballPosition.add(
-            PongApplication.config.ballInitPos.copy(
-                x = PongApplication.config.ballInitPos.x.plus(1.dp),
-                y = PongApplication.config.ballInitPos.y.plus(1.dp)
-            )
-        )
-        brickPosition = PongApplication.config.brickInitPos
     }
 
     fun resetGame(width: Dp, height: Dp) {
@@ -97,171 +81,16 @@ class MainViewModel @Inject constructor() : ViewModel() {
         System.arraycopy(values, 0, destination, 0, destination.size)
 
     fun getBallPosition(): Coordinate {
-        nextBallPosition()
-        ballPosition.pop()
-        val position = ballPosition.peek()
-        return position ?: PongApplication.config.ballInitPos
+        return Coordinate(ball.x.dp, ball.y.dp)
     }
 
-    private fun nextBallPosition() {
-        val p1 = ballPosition.peek()
-        val p2 = ballPosition[1]
-        val diff = p1?.let { p2.minus(it) }
-        val distance = sqrt(diff?.x?.value!!.toDouble().pow(2.0) + diff.y.value.toDouble().pow(2.0))
-        val speed = distance / REDRAW_TIMER
-
-        var angle = ballAngle(p2)
-        if (isBallGoingUpside && (diff.y < 0.dp)) angle += PI
-
-        val newCoordinate = getNextCoordinate(p2, angle, speed)
-
-        ballPosition.addLast(newCoordinate)
+    fun getBrickPosition(): Coordinate {
+        return Coordinate(brick.x.dp, brick.y.dp)
     }
 
-    private fun ballAngle(next: Coordinate): Double {
-        val prev = ballPosition.peek()
-
-        val diff = next.minus(prev)
-
-        var angle = 0.0
-        if ((diff.x == 0.dp) && (diff.y > 0.dp)) angle = -PI / 2
-        if ((diff.x == 0.dp) && (diff.y < 0.dp)) angle = PI / 2
-
-        angle = atan(diff.y.div(diff.x).toDouble())
-
-        if (angle < 0.0) angle += PI
-
-        val doesHitWall = doesHitWall(next)
-        val doesHitBrick = doesHitBrick(next)
-
-        if (doesHitWall != 0) {
-            var returnAngle = (PI - (2 * angle))
-            if ((angle == PI) || (angle == -PI) || (angle == PI / 2) || (angle == -PI / 2)) returnAngle = PI
-            if (doesHitWall == 3) returnAngle += PI
-            angle += returnAngle
-        }
-
-        return angle
+    fun getBrickAngleDegree(): Float {
+        return brick.angle * 360 / Math.PI.toFloat()
     }
-
-    private fun getNextCoordinate(current: Coordinate, angle: Double, speed: Double) = Coordinate(
-        x = current.x.plus((cos(angle) * (speed * REDRAW_TIMER)).dp),
-        y = current.y.plus((sin(angle) * (speed * REDRAW_TIMER)).dp)
-    )
-
-    private fun doesHitWall(next: Coordinate): Int {
-        val config = PongApplication.config
-        val radius = config.ballRadius
-
-        if (next.y <= radius) {
-            isBallGoingUpside = false
-            return 1
-        }
-        if (next.x >= config.displayWidth.minus(radius)) return 1
-        if (next.y >= config.displayHeight.minus(radius)) {
-            isBallGoingUpside = true
-            return 3
-        }
-        if (next.x <= radius) return 4
-
-        return 0
-    }
-
-    private fun doesHitBrick(next: Coordinate): Int {
-        val center = brickPosition
-        val angle = orientationAnglesDegree.z
-
-
-
-
-
-
-
-        val brickVertices = brickVertices(center, angle)
-
-//        Log.e(TAG, "doesHitBrick: $brickVertices")
-
-        // Check if the ball intersects any of the rectangle's edges
-        for (i in brickVertices.indices) {
-            val j = (i + 1) % brickVertices.size
-            if (lineIntersectsCircle(brickVertices[i], brickVertices[j], next)) {
-                return 1
-            }
-        }
-
-        // Check if the ball is inside the rectangle
-        /*if (pointInsideRectangle(ballCenter, rectVertices)) {
-            return 1
-        }*/
-
-        return 0
-
-
-
-
-//        return 0
-    }
-
-
-    private fun brickVertices(position: Coordinate, angle: Double): List<Coordinate> {
-        val halfWidth = PongApplication.config.brickWidth.div(2).value
-        val halfHeight = PongApplication.config.brickHeight.div(2).value
-
-        val radAngle = Math.toRadians(angle)
-
-        val cosAngle = cos(radAngle)
-        val sinAngle = sin(radAngle)
-
-        val dx1 = halfWidth * cosAngle - halfHeight * sinAngle
-        val dy1 = halfWidth * sinAngle + halfHeight * cosAngle
-
-        val dx2 = halfWidth * cosAngle + halfHeight * sinAngle
-        val dy2 = halfWidth * sinAngle - halfHeight * cosAngle
-
-        val p1 = Coordinate(position.x + dx1.dp, position.y + dy1.dp)
-        val p2 = Coordinate(position.x - dx2.dp, position.y + dy2.dp)
-        val p3 = Coordinate(position.x - dx1.dp, position.y - dy1.dp)
-        val p4 = Coordinate(position.x + dx2.dp, position.y - dy2.dp)
-
-        return listOf(p1, p2, p3, p4)
-    }
-
-    private fun lineIntersectsCircle(
-        lineStart: Coordinate,
-        lineEnd: Coordinate,
-        circleCenter: Coordinate
-    ): Boolean {
-        val radius = PongApplication.config.ballRadius
-        val dx = (lineEnd.x - lineStart.x).value
-        val dy = (lineEnd.y - lineStart.y).value
-        val a = dx.pow(2) + dy.pow(2)
-        val b = 2 * ((dx * (lineStart.x - circleCenter.x).value) + (dy * (lineStart.y - circleCenter.y).value))
-        val c =
-            circleCenter.x.times(circleCenter.x.value) +
-                    circleCenter.y.times(circleCenter.y.value) +
-                    lineStart.x.times(lineStart.x.value) +
-                    lineStart.y.times(lineStart.y.value) -
-                    (circleCenter.x.times(lineStart.x.value) +
-                            circleCenter.y.times(lineStart.y.value)).times(2) -
-                    radius.times(radius.value)
-        val discriminant = b.pow(2) - (4 * a * c.value)
-        if (discriminant < 0) {
-            return false
-        }
-        val t = (-b - sqrt(discriminant)) / (a.times(2))
-        if (t in 0.0..1.0) {
-            return true
-        }
-        return false
-    }
-
-
-
-
-
-
-
-
 
     fun setZAxisRotation(rotationVector: FloatArray) {
         SensorManager.getRotationMatrixFromVector(rotationMatrix, rotationVector)
@@ -281,82 +110,14 @@ class MainViewModel @Inject constructor() : ViewModel() {
         zAxisOffset = orientationAnglesDegree.z
     }
 
-    fun calculateMovement() {
-        val currentTime = System.currentTimeMillis()
-        val timeDifference = currentTime - lastUpdate
-        if (timeDifference > 100) {
-            lastUpdate = currentTime
-            val deltaX = accelerometerReading[0] - lastX
-            lastX = accelerometerReading[0]
-            val distance = 0.5f * deltaX * (timeDifference.toFloat() / 1000.0f) * (timeDifference.toFloat() / 1000.0f) * 100000
-
-            val leftMovement = if (distance < 0) -distance else 0.0f
-            val rightMovement = if (distance > 0) distance else 0.0f
-
-            if (abs(rightMovement - leftMovement) < 1) return
-
-            if (rightMovement > leftMovement) {
-                moveRightCount++
-                moveRightSum += rightMovement
-            } else if (rightMovement < leftMovement) {
-                moveLeftCount++
-                moveLeftSum += leftMovement
-            }
-        }
-    }
-
     private fun changeBrickPosition() {
         viewModelScope.launch {
             while (true) {
 
-                val movement =
-                    getBrickMove(moveRightSum.toFloat() / moveRightCount.toFloat()).minus(
-                        getBrickMove(moveLeftSum.toFloat() / moveLeftCount.toFloat())
-                    )
-
-                if (!movement.isUnspecified) {
-                    if (movement > 0.dp) brickPosition = Coordinate(
-                        x = brickPosition.x + getBrickMove(moveRightSum.toFloat() / moveRightCount.toFloat()),
-                        y = brickPosition.y
-                    )
-                    else if (movement < 0.dp) brickPosition = Coordinate(
-                        x = brickPosition.x - getBrickMove(moveLeftSum.toFloat() / moveLeftCount.toFloat()),
-                        y = brickPosition.y
-                    )
-                }
-
-                if (brickPosition.x < -PongApplication.config.brickWidth.div(2)) {
-                    brickPosition = Coordinate(
-                        x = -PongApplication.config.brickWidth.div(2),
-                        y = brickPosition.y
-                    )
-                }
-                if (brickPosition.x > PongApplication.config.displayWidth.minus(
-                        PongApplication.config.brickWidth.div(
-                            2
-                        )
-                    )
-                ) {
-                    brickPosition = Coordinate(
-                        x = PongApplication.config.displayWidth.minus(
-                            PongApplication.config.brickWidth.div(2)
-                        ),
-                        y = brickPosition.y
-                    )
-                }
-
-                moveRightCount = 0
-                moveLeftCount = 0
-                moveRightSum = 0.0
-                moveLeftSum = 0.0
-
-//                Log.d("TAG", "changeBrickPosition: $brickPosition  $movement")
-
+                board.doStep(brick.x, brick.y, brick.angle)
                 delay(100)
             }
         }
     }
-
-    private fun getBrickMove(move: Float) = PongApplication.config.displayWidth.times(move).div(25)
 
 }
