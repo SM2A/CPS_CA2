@@ -1,6 +1,5 @@
 package com.example.pong.model
 
-import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -17,24 +16,21 @@ data class Ball(
     }
 
     fun rotate(angle: Float) {
-        var correctAngle = angle
-        if (abs(vx) > abs(vy)) {
-            correctAngle += Math.PI.toFloat() / 2
-        }
-
-        val newVx = cos(2 * correctAngle) * vx + -sin(2 * correctAngle) * vy
-        val newVy = -cos(2 * correctAngle) * vy + sin(2 * correctAngle) * vx
+        val newVx =  cos(2 * angle) * vx + sin(2 * angle) * vy
+        val newVy =  -cos(2 * angle) * vy + sin(2 * angle) * vx
 
         vy = newVy
         vx = newVx
+        x += vx
+        y += vy
     }
 
     fun checkCollision(width: Int, height: Int) {
-        if (x !in radius.toDouble()..(width.toDouble() - radius)){
+        if (x.toInt() !in radius..(width - radius)){
             vx = -vx
         }
 
-        if (y !in radius.toDouble()..(height.toDouble() - radius)){
+        if (y.toInt() !in radius..(height - radius)){
             vy = -vy
         }
     }

@@ -13,8 +13,10 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -63,6 +65,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             var redraw by remember {
                 mutableStateOf(false)
             }
+
+            Text(text = viewModel.brick.ax.toString())
+            Text(text = viewModel.brick.vx.toString(), Modifier.absoluteOffset(x = 100.dp))
 
             LaunchedEffect(key1 = redraw) {
                 delay(MainViewModel.REDRAW_TIMER)
@@ -126,12 +131,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             when (it.sensor.type) {
                 Sensor.TYPE_LINEAR_ACCELERATION -> {
-                    viewModel.copyData(it.values, viewModel.accelerometerReading)
-                    //viewModel.calculateMovement()
+                    viewModel.onAcceleration(it.values, it.timestamp);
                 }
-                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
+
+                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(
+                    it.values,
+                    viewModel.magnetometerReading
+                )
+
                 Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
-                Sensor.TYPE_ROTATION_VECTOR -> viewModel.setZAxisRotation(it.values)
+                Sensor.TYPE_ROTATION_VECTOR -> viewModel.onRotation(it.values)
                 else -> {
                     Log.w(TAG, "onSensorChanged: Unknown sensor ${it.sensor.type}")
                 }
@@ -149,7 +158,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 viewModel.sensorManager.registerListener(
                     this,
                     sensor,
-                    SensorManager.SENSOR_DELAY_GAME,
+                    SensorManager.SENSOR_DELAY_FASTEST,
                     SensorManager.SENSOR_DELAY_FASTEST
                 )
             }
@@ -208,7 +217,10 @@ fun Brick(
         ) {
             drawRect(
                 color = color,
-                topLeft = Offset(x = x.toPx() - (width.toPx() / 2), y = y.toPx() - (height.toPx() / 2)),
+                topLeft = Offset(
+                    x = x.toPx() - (width.toPx() / 2),
+                    y = y.toPx() - (height.toPx() / 2)
+                ),
                 size = Size(width.toPx(), height.toPx())
             )
         }
