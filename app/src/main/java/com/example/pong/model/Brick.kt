@@ -56,7 +56,7 @@ class Brick(
         backX -= (vx * timeSpan)
         val newX = backX.toInt()
         if (newX in 0..(boardWidth)) {
-            //x = newX
+            x = newX
         } else {
             backX = x.toFloat()
             vx = 0.0f
