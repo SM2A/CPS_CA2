@@ -10,13 +10,13 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         private const val TAG = "MainActivity"
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -47,16 +48,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         viewModel.sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
 
         var ballPosition = PongApplication.config.ballInitPos
+        var brickPosition = PongApplication.config.brickInitPos
+        var brickAngle = 0.0
+        var modifier: Modifier = Modifier
+        var initialize = false
 
         setContent {
 
             val displayWidth = LocalConfiguration.current.screenWidthDp.dp
             val displayHeight = LocalConfiguration.current.screenHeightDp.dp
 
-            viewModel.setupGameConfig(
-                width = displayWidth,
-                height = displayHeight
-            )
+            if (!initialize) {
+                viewModel.setupGameConfig(
+                    width = displayWidth,
+                    height = displayHeight
+                )
+                initialize = true
+            }
 
             var redraw by remember {
                 mutableStateOf(false)
@@ -66,6 +74,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 delay(MainViewModel.REDRAW_TIMER)
                 redraw = !redraw
                 ballPosition = viewModel.getBallPosition()
+                brickPosition = viewModel.getBrickPosition()
+                brickAngle = viewModel.getBrickAngleDegree()
+                modifier =
+                    if (viewModel.showPlayButton) Modifier.blur(5.dp) else Modifier.combinedClickable(
+                        onClick = { },
+                        onLongClick = {
+                            viewModel.showPlayButton = true
+                        }
+                    )
             }
 
             PlayButton(
@@ -78,39 +95,41 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         width = displayWidth,
                         height = displayHeight
                     )
+                    viewModel.changeBrickPosition()
                 }
             )
 
-            Ball(
-                x = ballPosition.x,
-                y = ballPosition.y,
-                radius = PongApplication.config.ballRadius,
-                color = PongApplication.config.ballColor,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-            )
+            Box(modifier = modifier) {
 
-            Brick(
-                x = viewModel.brickPosition.x,
-                y = viewModel.brickPosition.y,
-                width = PongApplication.config.brickWidth,
-                height = PongApplication.config.brickHeight,
-                color = PongApplication.config.brickColor,
-                rotationDegree = viewModel.orientationAnglesDegree.z.toFloat(),
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-            )
+                Ball(
+                    x = ballPosition.x,
+                    y = ballPosition.y,
+                    radius = PongApplication.config.ballRadius,
+                    color = PongApplication.config.ballColor,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                )
+
+                Brick(
+                    x = brickPosition.x,
+                    y = brickPosition.y,
+                    width = PongApplication.config.brickWidth,
+                    height = PongApplication.config.brickHeight,
+                    color = PongApplication.config.brickColor,
+                    rotationDegree = brickAngle.toFloat(),
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                )
+            }
         }
     }
 
     override fun onResume() {
         super.onResume()
         registerSensor(Sensor.TYPE_LINEAR_ACCELERATION)
-        registerSensor(Sensor.TYPE_MAGNETIC_FIELD)
         registerSensor(Sensor.TYPE_ROTATION_VECTOR)
-        registerSensor(Sensor.TYPE_GRAVITY)
     }
 
     override fun onPause() {
@@ -121,13 +140,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                Sensor.TYPE_LINEAR_ACCELERATION -> {
-                    viewModel.copyData(it.values, viewModel.accelerometerReading)
-                    viewModel.calculateMovement()
-                }
-                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
-                Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
-                Sensor.TYPE_ROTATION_VECTOR -> viewModel.setZAxisRotation(it.values)
+                Sensor.TYPE_LINEAR_ACCELERATION -> viewModel.onAcceleration(it.values, it.timestamp)
+                Sensor.TYPE_ROTATION_VECTOR -> viewModel.onRotation(it.values)
                 else -> {
                     Log.w(TAG, "onSensorChanged: Unknown sensor ${it.sensor.type}")
                 }
@@ -200,11 +214,14 @@ fun Brick(
     Canvas(modifier = modifier) {
         rotate(
             degrees = rotationDegree,
-            pivot = Offset(x = x.toPx() + (width.toPx() / 2), y = y.toPx() + (height.toPx() / 2))
+            pivot = Offset(x = x.toPx(), y = y.toPx())
         ) {
             drawRect(
                 color = color,
-                topLeft = Offset(x = x.toPx(), y = y.toPx()),
+                topLeft = Offset(
+                    x = x.toPx() - (width.toPx() / 2),
+                    y = y.toPx() - (height.toPx() / 2)
+                ),
                 size = Size(width.toPx(), height.toPx())
             )
         }
