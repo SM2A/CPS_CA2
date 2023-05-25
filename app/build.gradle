@@ -13,8 +13,8 @@ android {
         applicationId "com.example.pong"
         minSdk 23
         targetSdk 33
-        versionCode 1
-        versionName "0.1"
+        versionCode 18
+        versionName "1.2"
 
         vectorDrawables {
             useSupportLibrary true
