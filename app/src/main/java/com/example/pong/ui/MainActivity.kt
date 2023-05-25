@@ -13,10 +13,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -49,6 +51,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         var ballPosition = PongApplication.config.ballInitPos
         var brickPosition = PongApplication.config.brickInitPos
         var brickAngle = 0.0
+        var modifier: Modifier = Modifier
 
         setContent {
 
@@ -70,6 +73,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 ballPosition = viewModel.getBallPosition()
                 brickPosition = viewModel.getBrickPosition()
                 brickAngle = viewModel.getBrickAngleDegree()
+                modifier = if (viewModel.showPlayButton) Modifier.blur(5.dp) else Modifier
             }
 
             PlayButton(
@@ -86,27 +90,30 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 }
             )
 
-            Ball(
-                x = ballPosition.x,
-                y = ballPosition.y,
-                radius = PongApplication.config.ballRadius,
-                color = PongApplication.config.ballColor,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-            )
+            Box(modifier = modifier) {
 
-            Brick(
-                x = brickPosition.x,
-                y = brickPosition.y,
-                width = PongApplication.config.brickWidth,
-                height = PongApplication.config.brickHeight,
-                color = PongApplication.config.brickColor,
-                rotationDegree = brickAngle.toFloat(),
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-            )
+                Ball(
+                    x = ballPosition.x,
+                    y = ballPosition.y,
+                    radius = PongApplication.config.ballRadius,
+                    color = PongApplication.config.ballColor,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                )
+
+                Brick(
+                    x = brickPosition.x,
+                    y = brickPosition.y,
+                    width = PongApplication.config.brickWidth,
+                    height = PongApplication.config.brickHeight,
+                    color = PongApplication.config.brickColor,
+                    rotationDegree = brickAngle.toFloat(),
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                )
+            }
         }
     }
 

@@ -42,7 +42,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     init {
         lastUpdate = System.currentTimeMillis()
-//        changeBrickPosition()
     }
 
     fun setupGameConfig(width: Dp, height: Dp) {
@@ -55,7 +54,10 @@ class MainViewModel @Inject constructor() : ViewModel() {
             ballInitPos = Coordinate(x = width.div(2), y = height.div(4)),
             brickWidth = width.div(3),
             brickHeight = height.div(38),
-            brickInitPos = Coordinate(x = width.div(3), y = height.div(4).times(3)),
+            brickInitPos = Coordinate(
+                x = width.div(3).plus(width.div(3).div(2)),
+                y = height.div(4).times(3).plus(height.div(38).div(2))
+            ),
             displayWidth = width,
             displayHeight = height
         )
