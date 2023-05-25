@@ -40,4 +40,4 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/
