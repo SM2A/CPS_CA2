@@ -52,16 +52,20 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         var brickPosition = PongApplication.config.brickInitPos
         var brickAngle = 0.0
         var modifier: Modifier = Modifier
+        var initialize = false
 
         setContent {
 
             val displayWidth = LocalConfiguration.current.screenWidthDp.dp
             val displayHeight = LocalConfiguration.current.screenHeightDp.dp
 
-            viewModel.setupGameConfig(
-                width = displayWidth,
-                height = displayHeight
-            )
+            if (!initialize) {
+                viewModel.setupGameConfig(
+                    width = displayWidth,
+                    height = displayHeight
+                )
+                initialize = true
+            }
 
             var redraw by remember {
                 mutableStateOf(false)

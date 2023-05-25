@@ -21,34 +21,23 @@ import kotlin.math.*
 class MainViewModel @Inject constructor() : ViewModel() {
 
     lateinit var sensorManager: SensorManager
-    private lateinit var ball: Ball
-    private lateinit var brick: Brick
-    private lateinit var board: Board
 
     // Sensor readings
     val magnetometerReading = FloatArray(3)
     val gravityReading = FloatArray(3)
 
-    // Brick position
-    private var lastUpdate: Long = 0
-
     // Ui elements state
     var showPlayButton = true
+    private lateinit var ball: Ball
+    private lateinit var brick: Brick
+    private lateinit var board: Board
 
     companion object {
         private const val TAG = "MainViewModel"
         const val REDRAW_TIMER = 10L
     }
 
-    init {
-        lastUpdate = System.currentTimeMillis()
-    }
-
     fun setupGameConfig(width: Dp, height: Dp) {
-
-        if ((width == PongApplication.config.displayWidth)
-            && ((height == PongApplication.config.displayHeight))
-        ) return
 
         PongApplication.config = GameConfig(
             ballInitPos = Coordinate(x = width.div(2), y = height.div(4)),
