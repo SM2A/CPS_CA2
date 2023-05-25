@@ -31,7 +31,7 @@ jobs:
           encodedString: ${{ secrets.KEYSTORE }}
 
       - name: Build with Gradle
-        run: ./gradlew bundleRelease
+        run: ./gradlew assembleRelease
         env:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -40,4 +40,4 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          path: app/build/outputs/
+          path: app/build/outputs/apk/release
