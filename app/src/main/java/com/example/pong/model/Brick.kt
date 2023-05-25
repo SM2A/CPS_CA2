@@ -35,7 +35,7 @@ class Brick(
         val output = alpha * acceleration + (1 - alpha) * lastAx
         lastAx = acceleration
 
-        return output / alpha / 2
+        return output / alpha / 4
     }
 
     fun applyAcceleration(

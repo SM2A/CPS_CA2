@@ -10,9 +10,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +40,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         private const val TAG = "MainActivity"
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -77,7 +76,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 ballPosition = viewModel.getBallPosition()
                 brickPosition = viewModel.getBrickPosition()
                 brickAngle = viewModel.getBrickAngleDegree()
-                modifier = if (viewModel.showPlayButton) Modifier.blur(5.dp) else Modifier
+                modifier =
+                    if (viewModel.showPlayButton) Modifier.blur(5.dp) else Modifier.combinedClickable(
+                        onClick = { },
+                        onLongClick = {
+                            viewModel.showPlayButton = true
+                        }
+                    )
             }
 
             PlayButton(
