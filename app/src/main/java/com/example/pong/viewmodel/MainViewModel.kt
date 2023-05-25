@@ -1,10 +1,8 @@
 package com.example.pong.viewmodel
 
 import android.hardware.SensorManager
-import android.util.Log
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.isUnspecified
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pong.GameConfig
@@ -13,12 +11,9 @@ import com.example.pong.model.Ball
 import com.example.pong.model.Board
 import com.example.pong.model.Brick
 import com.example.pong.model.Coordinate
-import com.example.pong.model.Orientation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.sql.Timestamp
-import java.util.LinkedList
 import javax.inject.Inject
 import kotlin.math.*
 
@@ -26,19 +21,13 @@ import kotlin.math.*
 class MainViewModel @Inject constructor() : ViewModel() {
 
     lateinit var sensorManager: SensorManager
-    private val ball: Ball = Ball(10, 200.0, 0.0, 15.0, 0.0)
-    public val brick: Brick = Brick(100, 50, 200, 600, 0.0f, 0.0f, 0.0f)
-    private val board: Board = Board(400, 750, ball, brick)
+    private lateinit var ball: Ball
+    private lateinit var brick: Brick
+    private lateinit var board: Board
 
     // Sensor readings
-    val accelerometerReading = FloatArray(3)
     val magnetometerReading = FloatArray(3)
     val gravityReading = FloatArray(3)
-
-    // Rotation data
-    private val rotationMatrix = FloatArray(9)
-    var orientationAnglesDegree: Orientation = Orientation()
-    private var zAxisOffset = 0.0
 
     // Brick position
     private var lastUpdate: Long = 0
@@ -53,7 +42,7 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     init {
         lastUpdate = System.currentTimeMillis()
-        changeBrickPosition()
+//        changeBrickPosition()
     }
 
     fun setupGameConfig(width: Dp, height: Dp) {
@@ -70,6 +59,31 @@ class MainViewModel @Inject constructor() : ViewModel() {
             displayWidth = width,
             displayHeight = height
         )
+
+        ball = Ball(
+            radius = PongApplication.config.ballRadius.value.toInt(),
+            x = PongApplication.config.ballInitPos.x.value.toDouble(),
+            y = PongApplication.config.ballInitPos.y.value.toDouble(),
+            vy = 1.0,
+            vx = 0.0
+        )
+
+        brick = Brick(
+            width = PongApplication.config.brickWidth.value,
+            height = PongApplication.config.brickHeight.value,
+            x = PongApplication.config.brickInitPos.x.value,
+            y = PongApplication.config.brickInitPos.y.value,
+            xAngle = 0.0f,
+            yAngle = 0.0f,
+            zAngle = 0.0f
+        )
+
+        board = Board(
+            width = PongApplication.config.displayWidth.value,
+            height = PongApplication.config.displayHeight.value,
+            ball = ball,
+            brick = brick
+        )
     }
 
     fun resetGame(width: Dp, height: Dp) {
@@ -80,37 +94,26 @@ class MainViewModel @Inject constructor() : ViewModel() {
     fun copyData(values: FloatArray, destination: FloatArray) =
         System.arraycopy(values, 0, destination, 0, destination.size)
 
-    fun getBallPosition(): Coordinate {
-        return Coordinate(ball.x.dp, ball.y.dp)
-    }
+    fun getBallPosition() = Coordinate(ball.x.dp, ball.y.dp)
 
-    fun getBrickPosition(): Coordinate {
-        return Coordinate(brick.x.dp, brick.y.dp)
-    }
+    fun getBrickPosition() = Coordinate(brick.x.dp, brick.y.dp)
 
-    fun getBrickAngleDegree(): Float {
-        return brick.zAngle * 360 / Math.PI.toFloat()
-    }
+    fun getBrickAngleDegree() = Math.toDegrees(brick.zAngle.toDouble())
 
-    private fun changeBrickPosition() {
+    fun changeBrickPosition() {
         viewModelScope.launch {
             while (true) {
                 board.doStep()
-                delay(100)
+                delay(REDRAW_TIMER)
             }
         }
     }
 
-    fun onAcceleration(values: FloatArray?, timestamp: Long) {
-        if (values != null) {
-            board.applyAcceleration(values[0], values[1], values[2], timestamp)
-        }
-    }
+    fun onAcceleration(values: FloatArray, timestamp: Long) =
+        board.applyAcceleration(values[0], values[1], values[2], timestamp)
 
-    fun onRotation(values: FloatArray?) {
-        if (values != null) {
-            val floatPI = PI.toFloat()
-            brick.applyAngle(values[0] * floatPI, values[1] * floatPI, values[2] * floatPI)
-        }
+    fun onRotation(values: FloatArray) {
+        val floatPI = PI.toFloat()
+        brick.applyAngle(values[0] * floatPI, values[1] * floatPI, values[2] * floatPI)
     }
 }

@@ -3,7 +3,7 @@ package com.example.pong.model
 import kotlin.math.cos
 import kotlin.math.sin
 
-data class Ball(
+class Ball(
     val radius: Int,
     var x: Double,
     var y: Double,
@@ -16,8 +16,8 @@ data class Ball(
     }
 
     fun rotate(angle: Float) {
-        val newVx =  cos(2 * angle) * vx + sin(2 * angle) * vy
-        val newVy =  -cos(2 * angle) * vy + sin(2 * angle) * vx
+        val newVx = cos(2 * angle) * vx + sin(2 * angle) * vy
+        val newVy = -cos(2 * angle) * vy + sin(2 * angle) * vx
 
         vy = newVy
         vx = newVx
@@ -25,13 +25,8 @@ data class Ball(
         y += vy
     }
 
-    fun checkCollision(width: Int, height: Int) {
-        if (x.toInt() !in radius..(width - radius)){
-            vx = -vx
-        }
-
-        if (y.toInt() !in radius..(height - radius)){
-            vy = -vy
-        }
+    fun checkCollision(width: Float, height: Float) {
+        if ((x <= radius) || (x >= (width - radius))) vx = -vx
+        if ((y <= radius) || (y >= (height - radius))) vy = -vy
     }
 }

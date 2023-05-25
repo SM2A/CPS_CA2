@@ -8,23 +8,23 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class Brick(
-    private val width: Int,
-    private val height: Int,
-    var x: Int,
-    var y: Int,
+    private val width: Float,
+    private val height: Float,
+    var x: Float,
+    var y: Float,
     private var xAngle: Float,
     private var yAngle: Float,
     var zAngle: Float
 ) {
-    public var vx = 0.0f
-    public var ax = 0.0f
+    private var vx = 0.0f
+    private var ax = 0.0f
     private var initialXAngle = 0.0f
     private var initialYAngle = 0.0f
     private var initialZAngle = 0.0f
     private var lastAx = 0.0f
     private var alpha = 0.19f
     private var lastTimeStamp: Long = 0
-    private var backX = x.toFloat()
+    private var backX = x
 
     private fun lowPass(acceleration: Float): Float {
         if (lastTimeStamp == 0L) {
@@ -42,7 +42,7 @@ class Brick(
         xAcceleration: Float,
         yAcceleration: Float,
         zAcceleration: Float,
-        boardWidth: Int,
+        boardWidth: Float,
         timestamp: Long
     ) {
         val acceleration = xAcceleration * cos(yAngle) * cos(zAngle) +
@@ -54,11 +54,10 @@ class Brick(
         vx += ax * boardWidth * timeSpan
 
         backX -= (vx * timeSpan)
-        val newX = backX.toInt()
-        if (newX in 0..(boardWidth)) {
-            x = newX
+        if ((backX >= 0.0) && (backX <= boardWidth)) {
+            x = backX
         } else {
-            backX = x.toFloat()
+            backX = x
             vx = 0.0f
         }
 

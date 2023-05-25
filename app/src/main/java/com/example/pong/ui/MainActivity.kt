@@ -13,10 +13,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -50,7 +48,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         var ballPosition = PongApplication.config.ballInitPos
         var brickPosition = PongApplication.config.brickInitPos
-        var brickAngle = 0.0f
+        var brickAngle = 0.0
 
         setContent {
 
@@ -65,9 +63,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             var redraw by remember {
                 mutableStateOf(false)
             }
-
-            Text(text = viewModel.brick.ax.toString())
-            Text(text = viewModel.brick.vx.toString(), Modifier.absoluteOffset(x = 100.dp))
 
             LaunchedEffect(key1 = redraw) {
                 delay(MainViewModel.REDRAW_TIMER)
@@ -87,6 +82,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                         width = displayWidth,
                         height = displayHeight
                     )
+                    viewModel.changeBrickPosition()
                 }
             )
 
@@ -106,7 +102,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 width = PongApplication.config.brickWidth,
                 height = PongApplication.config.brickHeight,
                 color = PongApplication.config.brickColor,
-                rotationDegree = brickAngle,
+                rotationDegree = brickAngle.toFloat(),
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth()
@@ -130,15 +126,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
             when (it.sensor.type) {
-                Sensor.TYPE_LINEAR_ACCELERATION -> {
-                    viewModel.onAcceleration(it.values, it.timestamp);
-                }
-
-                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(
-                    it.values,
-                    viewModel.magnetometerReading
-                )
-
+                Sensor.TYPE_LINEAR_ACCELERATION -> viewModel.onAcceleration(it.values, it.timestamp)
+                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
                 Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
                 Sensor.TYPE_ROTATION_VECTOR -> viewModel.onRotation(it.values)
                 else -> {
@@ -158,7 +147,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 viewModel.sensorManager.registerListener(
                     this,
                     sensor,
-                    SensorManager.SENSOR_DELAY_FASTEST,
+                    SensorManager.SENSOR_DELAY_GAME,
                     SensorManager.SENSOR_DELAY_FASTEST
                 )
             }
