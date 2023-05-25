@@ -24,11 +24,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode Keystore
-          id: decode_keystore
-          uses: timheuer/base64-to-file@v1
-          with:
-            fileName: 'assets/sign.jks'
-            encodedString: ${{ secrets.KEYSTORE }}
+        id: decode_keystore
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: 'assets/sign.jks'
+          encodedString: ${{ secrets.KEYSTORE }}
 
       - name: Build with Gradle
         run: ./gradlew assembleRelease
