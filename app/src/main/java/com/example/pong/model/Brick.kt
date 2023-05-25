@@ -71,12 +71,9 @@ class Brick(
             initialZAngle = newZAngle
         }
 
-        xAngle = newXAngle - initialXAngle
-        yAngle = newYAngle - initialYAngle
-        zAngle = newZAngle - initialZAngle
-
-        if (zAngle >= Math.toRadians(90.0)) zAngle = Math.toRadians(90.0).toFloat()
-        else if (zAngle <= Math.toRadians(-90.0)) zAngle = Math.toRadians(-90.0).toFloat()
+        xAngle = -(newXAngle - initialXAngle)
+        yAngle = -(newYAngle - initialYAngle)
+        zAngle = -(newZAngle - initialZAngle)
     }
 
     private var lastDistance = 0.0

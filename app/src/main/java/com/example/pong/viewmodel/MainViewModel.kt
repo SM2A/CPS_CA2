@@ -22,11 +22,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     lateinit var sensorManager: SensorManager
 
-    // Sensor readings
-    val magnetometerReading = FloatArray(3)
-    val gravityReading = FloatArray(3)
-
-    // Ui elements state
     var showPlayButton = true
     private lateinit var ball: Ball
     private lateinit var brick: Brick
@@ -81,9 +76,6 @@ class MainViewModel @Inject constructor() : ViewModel() {
         setupGameConfig(width, height)
         showPlayButton = false
     }
-
-    fun copyData(values: FloatArray, destination: FloatArray) =
-        System.arraycopy(values, 0, destination, 0, destination.size)
 
     fun getBallPosition() = Coordinate(ball.x.dp, ball.y.dp)
 

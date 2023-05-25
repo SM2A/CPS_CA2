@@ -124,9 +124,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
         registerSensor(Sensor.TYPE_LINEAR_ACCELERATION)
-        registerSensor(Sensor.TYPE_MAGNETIC_FIELD)
         registerSensor(Sensor.TYPE_ROTATION_VECTOR)
-        registerSensor(Sensor.TYPE_GRAVITY)
     }
 
     override fun onPause() {
@@ -138,8 +136,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         event?.let {
             when (it.sensor.type) {
                 Sensor.TYPE_LINEAR_ACCELERATION -> viewModel.onAcceleration(it.values, it.timestamp)
-                Sensor.TYPE_MAGNETIC_FIELD -> viewModel.copyData(it.values, viewModel.magnetometerReading)
-                Sensor.TYPE_GRAVITY -> viewModel.copyData(it.values, viewModel.gravityReading)
                 Sensor.TYPE_ROTATION_VECTOR -> viewModel.onRotation(it.values)
                 else -> {
                     Log.w(TAG, "onSensorChanged: Unknown sensor ${it.sensor.type}")
